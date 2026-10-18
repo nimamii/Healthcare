@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Modules.Geography.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

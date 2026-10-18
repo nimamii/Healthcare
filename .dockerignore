@@ -1,0 +1,25 @@
+# Keep the build context small and prevent host artefacts leaking into the image.
+
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+**/.next/
+
+.git/
+.gitignore
+.env
+.env.local
+
+docs/
+*.md
+!README.md
+
+**/*.user
+**/*.pfx
+**/*.key
+
+# Local verification helpers — never part of the image
+scripts/
+build.ps1

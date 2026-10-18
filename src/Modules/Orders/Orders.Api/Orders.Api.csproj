@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Microsoft.NET.Sdk with an explicit FrameworkReference, not the Web SDK.
+    That means none of the ASP.NET Core namespaces are implicit, so this
+    project imports them itself.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Modules.Orders.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Orders.Application\Orders.Application.csproj" />
+    <ProjectReference Include="..\Orders.Contracts\Orders.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+</Project>

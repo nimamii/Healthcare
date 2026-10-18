@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Domain depends on NOTHING: no EF Core, no other module, no packages. -->
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Modules.Orders.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

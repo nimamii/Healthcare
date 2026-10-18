@@ -1,0 +1,9 @@
+<Project>
+
+  <!--
+    Forwards to the repository root copy. See Directory.Build.props beside
+    this file for why an empty file here would be worse than no file.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Packages.props" />
+
+</Project>

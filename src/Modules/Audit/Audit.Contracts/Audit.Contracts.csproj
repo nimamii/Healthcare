@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pure interfaces. If this ever needs a package reference, a boundary has
+    been crossed.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Modules.Audit.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

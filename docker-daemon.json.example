@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Copy this to the Docker Desktop daemon config to use a registry mirror.",
+    "",
+    "Windows:  C:\\Users\\<you>\\.docker\\daemon.json",
+    "         or via Docker Desktop UI: Settings > Docker Engine (paste, then Apply & Restart)",
+    "",
+    "Replace the URL with the mirror your network allows. If you are behind a",
+    "corporate proxy, use your registry mirror's hostname instead.",
+    "",
+    "After changing this, restart Docker Desktop and verify with:",
+    "  docker pull redis:7-alpine"
+  ],
+
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io"
+  ]
+}

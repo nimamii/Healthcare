@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A scratch project, not part of the solution. It prints what EF Core's
+    model actually contains, because three rounds of guessing at the column
+    name have been wrong.
+
+    An XML comment cannot contain a double hyphen, so the run command lives
+    in tests/Probe/README.md rather than here.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Healthcare.Probe</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

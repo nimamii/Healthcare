@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    MSBuild searches upward from each project for Directory.Build.props and
+    uses the FIRST one it finds. This file exists only because the repository
+    root copy sits above it.
+
+    It must not simply be empty: that stops the search here and leaves every
+    setting — TargetFramework, Nullable, TreatWarningsAsErrors — undefined,
+    which fails as "The TargetFramework value '' was not recognized".
+
+    So it forwards to the real one instead of replacing it.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props" />
+
+</Project>

@@ -1,0 +1,55 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.user
+
+# Secrets — never commit (§24, §33)
+.env
+.env.local
+*.pfx
+*.key
+secrets.json
+
+# IDE
+.vs/
+.idea/
+.vscode/*
+!.vscode/launch.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local data
+uploads/
+/data/
+
+# Environment files
+.env.*
+!.env.example
+
+# Credentials and certificates
+secrets/
+*.pem
+*.p12
+*.pfx
+*.key
+credentials.json
+
+# Local databases and logs
+*.log
+*.sqlite
+*.sqlite3
+
+# Dependencies and generated output
+node_modules/
+publish/
+coverage/
+TestResults/
+.vs/
+
+# Local application data
+uploads/

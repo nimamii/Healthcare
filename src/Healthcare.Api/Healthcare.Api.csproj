@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Api</RootNamespace>
+    <UserSecretsId>healthcare-api-dev</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The host references every module, but modules do NOT reference each
+      other. This project is the only place the full picture exists, which is
+      what makes the boundary checkable: no module can reach another's internals
+      because no such ProjectReference exists on its side.
+    -->
+    <ProjectReference Include="..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Identity.Api\Identity.Api.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Identity.Infrastructure\Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Identity.Contracts\Identity.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Audit.Infrastructure\Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Audit.Contracts\Audit.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Catalog\Catalog.Api\Catalog.Api.csproj" />
+    <ProjectReference Include="..\Modules\Catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Catalog\Catalog.Contracts\Catalog.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\Inventory.Api\Inventory.Api.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\Inventory.Infrastructure\Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\Inventory.Contracts\Inventory.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Geography\Geography.Infrastructure\Geography.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Geography\Geography.Contracts\Geography.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Orders\Orders.Api\Orders.Api.csproj" />
+    <ProjectReference Include="..\Modules\Orders\Orders.Application\Orders.Application.csproj" />
+    <ProjectReference Include="..\Modules\Orders\Orders.Contracts\Orders.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Orders\Orders.Infrastructure\Orders.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Orders\Orders.Domain\Orders.Domain.csproj" />
+    <ProjectReference Include="..\Modules\Payments\Payments.Api\Payments.Api.csproj" />
+    <ProjectReference Include="..\Modules\Payments\Payments.Application\Payments.Application.csproj" />
+    <ProjectReference Include="..\Modules\Payments\Payments.Contracts\Payments.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Payments\Payments.Infrastructure\Payments.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Payments\Payments.Domain\Payments.Domain.csproj" />
+    <ProjectReference Include="..\Modules\Fulfillment\Fulfillment.Api\Fulfillment.Api.csproj" />
+    <ProjectReference Include="..\Modules\Fulfillment\Fulfillment.Application\Fulfillment.Application.csproj" />
+    <ProjectReference Include="..\Modules\Fulfillment\Fulfillment.Contracts\Fulfillment.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Fulfillment\Fulfillment.Infrastructure\Fulfillment.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Fulfillment\Fulfillment.Domain\Fulfillment.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

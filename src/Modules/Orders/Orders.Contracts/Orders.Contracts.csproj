@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pure interfaces. No packages, no implementation. If this project ever
+    needs a PackageReference, a boundary has been crossed.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Modules.Orders.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

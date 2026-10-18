@@ -1,0 +1,92 @@
+# Local development stack.
+#
+# The .NET SDK is NOT required on the host — it lives in the Docker build
+# stage. This keeps every developer's build identical (§12, §35).
+
+name: healthcare-marketplace
+
+services:
+  postgres:
+    # Built locally by Dockerfile.postgres, not pulled.
+    #
+    # The official postgis/postgis image is only on Docker Hub, which this
+    # network blocks. The spec requires PostGIS (§7), so it is built from a
+    # reachable PostgreSQL base plus the PostGIS packages.
+    #
+    # Rebuild after changing Dockerfile.postgres:
+    #   docker build -f Dockerfile.postgres -t healthcare/postgres-postgis:16-3.4 .
+    image: healthcare/postgres-postgis:16-3.4
+    container_name: hc-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-healthcare}
+      POSTGRES_USER: ${POSTGRES_USER:-healthcare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_only}
+      # Speeds up first boot; safe to drop once data is real.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      - "${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Runs once, when the database is first created, before the API starts.
+      #
+      # This replaces DbContext.EnsureCreated, which cannot work here: it
+      # creates the DATABASE and its own tables, and does nothing at all if
+      # the database already exists. With two modules owning separate schemas,
+      # whichever module ran second silently created nothing.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # The API must not start against a database that is still initialising,
+      # or the first migration races the Postgres startup.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-healthcare} -d ${POSTGRES_DB:-healthcare}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Services intentionally absent, and why:
+  #
+  #   Redis   — no code reads or writes it. §12 says use it "only where it
+  #              provides clear value", and nothing does yet. Returns in the
+  #              phase that first needs a cache (rate limiting or inventory
+  #              sync), not before.
+  #   S3      — no code reads or writes object storage. Needed for
+  #              prescription files (Phase 6, deferred) and product images
+  #              (Phase 2). See docs/MVP-PLAN.md.
+  #
+  # Each one added early is a container to start, a volume to keep, and
+  # another thing that can fail while the application underneath is fine.
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: hc-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: >-
+        Host=postgres;Port=5432;Database=${POSTGRES_DB:-healthcare};
+        Username=${POSTGRES_USER:-healthcare};Password=${POSTGRES_PASSWORD:-local_dev_only}
+      Jwt__Issuer: ${JWT_ISSUER:-healthcare-api}
+      Jwt__Audience: ${JWT_AUDIENCE:-healthcare-web}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY is required — see .env.example}
+    ports:
+      - "${API_PORT:-8090}:8080"
+    # No source volume on purpose.
+    #
+    # The development image builds the app at image-build time and runs the
+    # resulting DLL from /app/dev. A bind mount over /src would only shadow
+    # the source the build already consumed, and a mount over /app would hide
+    # the very binaries being run.
+    #
+    # To apply a code change:
+    #   docker compose up -d --build
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

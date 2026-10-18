@@ -1,0 +1,111 @@
+# PostgreSQL with PostGIS, built from a base that is reachable on this
+# network.
+#
+# The official postgis/postgis image is only on Docker Hub, which this network
+# blocks. This builds the same thing from a reachable PostgreSQL base plus the
+# PostGIS packages, so the capability the spec requires (§7) is available
+# without depending on a blocked registry.
+#
+# Needed from Phase 4 (Geography). Earlier phases use plain PostgreSQL because
+# nothing spatial is stored yet.
+
+# An ARG before FROM is only usable in FROM. A RUN starts a new shell that
+# cannot see it — the first build failed with "POSTGRES_VERSION: parameter not
+# set" for exactly that reason.
+ARG POSTGRES_VERSION=16
+
+FROM public.ecr.aws/docker/library/postgres:${POSTGRES_VERSION}
+
+# Re-declared so the RUN below can substitute it.
+ARG POSTGRES_VERSION
+
+# The Debian and PGDG repositories are reachable from inside the container even
+# though the host cannot reach Docker Hub: the block is on the registry, not on
+# the network as a whole.
+#
+# The package is postgresql-16-postgis-3, not postgresql-16-postgis-3-5. The
+# minor version is not part of the Debian package name — verified by listing the
+# index inside this exact base image, because guessing it cost a build.
+#
+# The -scripts package is not optional: PostGIS refuses to initialise without
+# the SQL that populates spatial_ref_sys.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates wget
+
+# Pre-fetch the one package this network cannot deliver.
+#
+# libfreexl1 fails from deb.debian.org on every attempt with a connection
+# error to an unroutable internal address, while the other 94 packages of the
+# PostGIS dependency tree download without incident. Fetching it from
+# ftp.de.debian.org — verified working, same content, different host — puts it
+# in apt's cache, so apt never asks the failing host for it.
+#
+# The file is placed but NOT installed with dpkg: its dependencies
+# (libexpat1, libminizip1t64) are still missing at this point, and dpkg would
+# refuse to configure it. Leaving it in the cache lets the later apt-get
+# install resolve the whole tree in one pass.
+#
+# The loop keeps this resilient: if a future base image renames the file, the
+# build says which mirrors were tried instead of failing on a stale name.
+RUN set -eux; \
+    cd /var/cache/apt/archives; \
+    fetched=""; \
+    for base in \
+        "http://ftp.de.debian.org/debian" \
+        "http://ftp.us.debian.org/debian" \
+        "http://deb.debian.org/debian"; do \
+        echo "=== trying $base"; \
+        if wget -q --timeout=20 --tries=1 \
+            "$base/pool/main/f/freexl/libfreexl1_2.0.0-1+b3_amd64.deb" \
+            -O "libfreexl1_2.0.0-1+b3_amd64.deb" && \
+           [ -s "libfreexl1_2.0.0-1+b3_amd64.deb" ]; then \
+            fetched="$base"; break; \
+        fi; \
+        rm -f "libfreexl1_2.0.0-1+b3_amd64.deb"; \
+    done; \
+    if [ -z "${fetched}" ]; then \
+        echo "libfreexl1 not available from any mirror" >&2; exit 1; \
+    fi; \
+    echo "libfreexl1 staged from ${fetched}"
+
+RUN set -eux; \
+    apt-get install -y --no-install-recommends \
+        libfreexl1 \
+        "postgresql-${POSTGRES_VERSION}-postgis-3" \
+        "postgresql-${POSTGRES_VERSION}-postgis-3-scripts"; \
+    rm -rf /var/lib/apt/lists/*
+
+# Load PostGIS at startup rather than per-database.
+#
+# The library is named postgis-3.so, not postgis.so: Debian's packaging puts
+# the major version in the filename, and PostgreSQL needs the exact name.
+# Writing plain 'postgis' makes initdb fail with
+#   could not access file "postgis": No such file or directory
+# before the database is even created.
+#
+# The target is postgresql.conf.sample, not postgresql.conf: inside the image
+# /usr/lib/postgresql/16/ holds only bin and lib, and the entrypoint copies
+# this sample into PGDATA on first run. Appending to the sample is therefore
+# the only edit that survives to the running server — writing to a
+# postgresql.conf that does not yet exist would be silently discarded.
+#
+# Verified against the built image: the libraries land in
+# /usr/lib/postgresql/16/lib/ as postgis-3.so plus the raster, topology and
+# sfcgal companions.
+RUN set -eux; \
+    lib="/usr/lib/postgresql/${POSTGRES_VERSION}/lib"; \
+    if [ ! -f "${lib}/postgis-3.so" ]; then \
+        echo "expected ${lib}/postgis-3.so, found:" >&2; \
+        ls "${lib}" | grep -i postgis >&2 || echo "  (no postgis library at all)" >&2; \
+        exit 1; \
+    fi; \
+    conf="/usr/lib/postgresql/${POSTGRES_VERSION}/postgresql.conf"; \
+    if [ ! -f "${conf}" ]; then \
+        conf="/usr/share/postgresql/${POSTGRES_VERSION}/postgresql.conf.sample"; \
+    fi; \
+    if [ ! -f "${conf}" ]; then \
+        echo "no postgresql.conf or .sample found to modify" >&2; exit 1; \
+    fi; \
+    printf "\n# Added for the Geography module (§7).\nshared_preload_libraries = 'postgis-3'\n" >> "${conf}"; \
+    echo "shared_preload_libraries set in ${conf}"

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Contracts are pure interfaces. No EF Core, no ASP.NET, no implementation.
+    If this project ever needs a package reference, a boundary has been crossed.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Modules.Identity.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    PostGIS behaviour, verified against a live database.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Healthcare.Tests.Geography.Integration</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Geography\Geography.Infrastructure\Geography.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Geography\Geography.Domain\Geography.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Geography\Geography.Contracts\Geography.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+</Project>
