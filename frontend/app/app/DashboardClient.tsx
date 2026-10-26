@@ -68,6 +68,9 @@ export default function DashboardClient() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <Link href="/demo" className="btn btn-ghost">
+            دمو و دیباگ
+          </Link>
           <Link href="/shop" className="btn btn-ghost">
             فروشگاه
           </Link>

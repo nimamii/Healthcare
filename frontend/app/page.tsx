@@ -47,6 +47,7 @@ export default function Home() {
           <strong style={{ fontSize: "1.2rem", color: "var(--primary)" }}>یا علی</strong>
           <nav style={{ display: "flex", gap: 16, fontSize: "0.95rem", alignItems: "center" }}>
             <Link href="/shop">فروشگاه</Link>
+            <Link href="/demo">دمو و دیباگ</Link>
             <Link href="#modules">ماژول‌ها</Link>
             <Link href="/about">درباره ما</Link>
             <Link href="/contact">تماس با ما</Link>

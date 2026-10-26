@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>یا علی — پیش‌نمایش تعاملی و کنسول دیباگ (Demo & Debugger)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" />
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #0f172a;
+      --ink-soft: #475569;
+      --paper: #f0f6ff;
+      --surface: #ffffff;
+      --surface-alt: #e0ecff;
+      --line: #c7d9f2;
+      --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+      --primary-soft: #dbeafe;
+      --amber: #d97706;
+      --pulse: #dc2626;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(180deg, #eaf2ff 0%, var(--paper) 320px, #f8fbff 100%);
+      background-attachment: fixed;
+      color: var(--ink);
+      font-family: Vazirmatn, Tahoma, sans-serif;
+      font-size: 15.5px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+    .container { max-width: 1160px; margin-inline: auto; padding-inline: 24px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      box-shadow: 0 4px 16px rgba(29, 78, 216, 0.05);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+      transition: all 0.15s ease;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-ghost { background: var(--surface); border-color: var(--line); color: var(--ink); }
+    .btn-ghost:hover, .btn-ghost.active { background: var(--surface-alt); border-color: var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--surface); border-color: var(--pulse); color: var(--pulse); }
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: var(--surface-alt);
+      border: 1px solid var(--line);
+      font-size: 0.8rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      font-family: inherit;
+      font-size: 0.92rem;
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--primary);
+      border-color: var(--primary);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+    th { border-bottom: 2px solid var(--line); color: var(--ink-soft); }
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 16px; }
+    .split-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="container" style="padding-block: 18px; border-bottom: 1px solid var(--line);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <strong style="font-size: 1.3rem; color: var(--primary);">یا علی</strong>
+        <span class="tag">محیط دمو و دیباگ زنده (Blue Theme)</span>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-ghost active" id="tab-store" onclick="switchView('store')">۱. ویترین و فروشگاه (/shop)</button>
+        <button class="btn btn-ghost" id="tab-checkout" onclick="switchView('checkout')">
+          ۲. سبد خرید و تسویه (<span id="nav-cart-count" class="mono">0</span>)
+        </button>
+        <button class="btn btn-ghost" id="tab-admin" onclick="switchView('admin')">۳. پنل ادمین و تأمین‌کننده (/app)</button>
+        <button class="btn btn-primary" id="tab-debug" onclick="switchView('debug')">۴. دیباگر ماشین وضعیت و API (/demo)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding-block: 28px 60px;">
+    <!-- VIEW 1: STOREFRONT -->
+    <section id="view-store">
+      <div class="card" style="margin-bottom: 24px; background: var(--surface-alt); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <span class="tag">مارکت‌پلیس دوطرفه تجهیزات پزشکی</span>
+          <h1 style="font-size: 1.8rem; margin: 8px 0 4px;">تجهیزات پزشکی، از تأمین‌کننده تا خریدار؛ موجودی لحظه‌ای</h1>
+          <p style="margin: 0; color: var(--ink-soft);">هر تغییر در موجودی انبار یا افزودن محصول در تب ادمین، بلافاصله در این فروشگاه و در دیباگر منعکس می‌شود.</p>
+        </div>
+        <button class="btn btn-primary" onclick="switchView('checkout')">مشاهده سبد خرید و ثبت سفارش ←</button>
+      </div>
+      <div id="store-grid" class="grid-cards"></div>
+    </section>
+
+    <!-- VIEW 2: CHECKOUT -->
+    <section id="view-checkout" class="hidden">
+      <h1 style="font-size: 1.65rem; margin-bottom: 16px;">سبد خرید و تسویه‌حساب (PostGIS + Fulfillment + Payment)</h1>
+      <div class="split-2">
+        <div id="cart-list" style="display: grid; gap: 12px; align-content: start;"></div>
+        <div class="card" style="display: grid; gap: 14px; align-content: start;">
+          <h2 style="font-size: 1.15rem; margin: 0;">اطلاعات تحویل و اجرای چرخه سفارش</h2>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600;">نشانی بیمارستان / کلینیک</label>
+            <input id="chk-address" value="تهران، خیابان ولیعصر، بیمارستان مرکزی" />
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 600;">عرض جغرافیایی (Latitude)</label>
+              <input id="chk-lat" class="mono" value="35.6892" />
+            </div>
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 600;">طول جغرافیایی (Longitude)</label>
+              <input id="chk-lon" class="mono" value="51.3890" />
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--line); padding-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <strong>مبلغ کل قابل پرداخت:</strong>
+            <span id="chk-total" class="mono" style="font-size: 1.2rem; color: var(--primary); font-weight: 700;">۰ ریال</span>
+          </div>
+          <button class="btn btn-primary" style="justify-content: center;" onclick="runFullCheckout()">تأیید، رزرو موجودی و پرداخت سفارش</button>
+          <div id="chk-steps" style="font-size: 0.86rem; background: var(--surface-alt); padding: 12px; border-radius: 8px;" class="hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: ADMIN & SUPPLIER PANEL -->
+    <section id="view-admin" class="hidden">
+      <div class="split-2">
+        <div class="card" style="display: grid; gap: 12px; align-content: start;">
+          <h2 style="font-size: 1.15rem; margin: 0;">افزودن محصول جدید به کاتالوگ (POST /api/catalog/products)</h2>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600;">نام محصول</label>
+            <input id="adm-name" placeholder="مثال: الکتروکاردیوگراف ۱۲ کاناله" />
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 0.85rem; font-weight: 600;">کد SKU</label>
+              <input id="adm-sku" class="mono" placeholder="ECG-001" />
+            </div>
+            <div>
+              <label style="font-size: 0.85rem; font-weight: 600;">قیمت (ریال)</label>
+              <input id="adm-price" type="number" class="mono" value="240000000" />
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="adminAddProduct()">ثبت محصول در کاتالوگ</button>
+        </div>
+
+        <div class="card" style="display: grid; gap: 12px; align-content: start;">
+          <h2 style="font-size: 1.15rem; margin: 0;">تنظیم موجودی انبار تأمین‌کننده (POST /api/inventory/adjust)</h2>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600;">انتخاب SKU</label>
+            <select id="adm-stock-sku"></select>
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600;">موجودی قابل فروش جدید</label>
+            <input id="adm-stock-qty" type="number" class="mono" value="30" />
+          </div>
+          <button class="btn btn-primary" onclick="adminAdjustStock()">به‌روزرسانی موجودی و افزایش Version</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: DEBUGGER & STATE MACHINE -->
+    <section id="view-debug" class="hidden">
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h2 style="font-size: 1.15rem; margin: 0;">جدول زنده موجودی و Optimistic Concurrency (`inventory.stock_items`)</h2>
+          <button class="btn btn-ghost" onclick="resetAll()">بازنشانی کل داده‌ها (Reset)</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>کد SKU</th>
+              <th>نام محصول</th>
+              <th>قیمت (IRR)</th>
+              <th>موجودی آزاد</th>
+              <th>رزرو شده</th>
+              <th>نسخه (Version)</th>
+            </tr>
+          </thead>
+          <tbody id="dbg-stock-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="split-2">
+        <div class="card" style="display: grid; gap: 10px; align-content: start;">
+          <h2 style="font-size: 1.15rem; margin: 0;">تست گام‌به‌گام API و ماشین وضعیت سفارش</h2>
+          <button class="btn btn-ghost" style="justify-content: space-between;" onclick="dbgStepRank()">
+            <span>۱. رتبه‌بندی تأمین‌کننده + PostGIS</span>
+            <span class="mono" style="color: var(--primary);">GET /api/fulfillment/skus/.../suppliers</span>
+          </button>
+          <button class="btn btn-primary" style="justify-content: space-between;" onclick="dbgStepReserve()">
+            <span>۲. ایجاد سفارش + رزرو موجودی</span>
+            <span class="mono">POST /api/orders + /reserve</span>
+          </button>
+          <button class="btn btn-ghost" style="justify-content: space-between;" onclick="dbgStepPay()">
+            <span>۳. پرداخت و تسویه درگاه</span>
+            <span class="mono" style="color: var(--primary);">POST /api/payments + /paid</span>
+          </button>
+          <button class="btn btn-ghost" style="justify-content: space-between;" onclick="dbgStepConfirm()">
+            <span>۴. تأیید نهایی سفارش (Confirmed)</span>
+            <span class="mono" style="color: var(--primary);">POST /api/orders/.../confirm</span>
+          </button>
+          <button class="btn btn-danger" style="justify-content: space-between;" onclick="dbgStepInvalid()">
+            <span>۵. شبیه‌سازی خطای دامنه (پرش غیرمجاز وضعیت)</span>
+            <span class="mono">HTTP 400 order_invalid_transition</span>
+          </button>
+        </div>
+
+        <div class="card" style="display: grid; gap: 10px; align-content: start;">
+          <h2 style="font-size: 1.15rem; margin: 0;">ماشین وضعیت سفارش فعال (`Orders.Domain`)</h2>
+          <div id="dbg-state-badges" style="display: grid; gap: 8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALWAYS-VISIBLE DEBUG LOG DRAWER -->
+    <section class="card" style="margin-top: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="font-size: 1.05rem; margin: 0;">کنسول دیباگ ترافیک API (Request / Response JSON Inspector)</h3>
+        <span class="tag mono" id="log-counter">0 درخواست ثبت شده</span>
+      </div>
+      <div class="split-2">
+        <div id="log-list" style="max-height: 240px; overflow-y: auto; display: grid; gap: 6px; align-content: start;"></div>
+        <pre id="log-detail" class="mono" style="margin: 0; background: #0f172a; color: #86efac; padding: 14px; border-radius: 10px; font-size: 0.78rem; direction: ltr; text-align: left; overflow-x: auto; min-height: 160px;">// روی یکی از دکمه‌ها یا عملیات‌ها کلیک کنید تا جزئیات کامل Request و Response اینجا نمایش داده شود.</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const INITIAL_SKUS = [
+      { skuId: "bbbbbbbb-0000-0000-0000-000000000001", code: "MON-001", name: "مانیتور بیمار قابل حمل ۱۲ اینچ", slug: "portable-patient-monitor", price: 485000000, available: 15, reserved: 0, version: 1, rx: false },
+      { skuId: "bbbbbbbb-0000-0000-0000-000000000003", code: "BP-001", name: "دستگاه فشارسنج دیجیتال بازویی", slug: "digital-blood-pressure", price: 18500000, available: 40, reserved: 0, version: 1, rx: false },
+      { skuId: "bbbbbbbb-0000-0000-0000-000000000004", code: "OX-001", name: "پالس اکسیمتر انگشتی OLED", slug: "fingertip-pulse-oximeter", price: 6500000, available: 60, reserved: 0, version: 1, rx: false },
+      { skuId: "bbbbbbbb-0000-0000-0000-000000000005", code: "VENT-001", name: "کمک تنفسی خانگی (CPAP / BiPAP)", slug: "home-ventilator", price: 390000000, available: 6, reserved: 0, version: 1, rx: true },
+      { skuId: "bbbbbbbb-0000-0000-0000-000000000006", code: "US-001", name: "دستگاه سونوگرافی قابل حمل", slug: "portable-ultrasound", price: 950000000, available: 4, reserved: 0, version: 1, rx: true }
+    ];
+
+    let skus = JSON.parse(JSON.stringify(INITIAL_SKUS));
+    let cart = [];
+    let logs = [];
+    let currentOrderState = -1;
+    let activeOrderId = null;
+
+    const STATES = [
+      "۰. Created (ایجاد شده)",
+      "۱. PaymentPending (در انتظار پرداخت)",
+      "۲. Paid (پرداخت شده)",
+      "۳. FulfillmentPending (در انتظار تأمین)",
+      "۴. Confirmed (تأیید نهایی)"
+    ];
+
+    function switchView(view) {
+      ["store", "checkout", "admin", "debug"].forEach(v => {
+        document.getElementById("view-" + v).classList.toggle("hidden", v !== view);
+        const btn = document.getElementById("tab-" + v);
+        if (v !== "debug") btn.classList.toggle("active", v === view);
+      });
+      renderAll();
+    }
+
+    function pushLog(method, endpoint, status, req, res) {
+      const entry = {
+        id: "req-" + (logs.length + 1),
+        time: new Date().toLocaleTimeString("fa-IR"),
+        method,
+        endpoint,
+        status,
+        req,
+        res
+      };
+      logs.unshift(entry);
+      renderLogs(entry);
+    }
+
+    function renderLogs(selected = logs[0]) {
+      document.getElementById("log-counter").textContent = logs.length.toLocaleString("fa-IR") + " درخواست ثبت شده";
+      const list = document.getElementById("log-list");
+      list.innerHTML = logs.map((l, idx) => `
+        <div onclick="selectLog(${idx})" style="padding: 8px 10px; border-radius: 8px; border: 1px solid ${selected && selected.id === l.id ? 'var(--primary)' : 'var(--line)'}; background: ${selected && selected.id === l.id ? 'var(--surface-alt)' : 'var(--surface)'}; cursor: pointer; display: flex; justify-content: space-between; font-size: 0.8rem;" class="mono">
+          <span><strong style="color: ${l.status >= 400 ? 'var(--pulse)' : 'var(--primary)'}">${l.method}</strong> ${l.endpoint}</span>
+          <span>HTTP ${l.status}</span>
+        </div>
+      `).join("");
+
+      if (selected) {
+        document.getElementById("log-detail").textContent =
+          `${selected.method} ${selected.endpoint}  -->  HTTP ${selected.status}\n` +
+          (selected.req ? `\n// Request Body:\n${JSON.stringify(selected.req, null, 2)}\n` : "") +
+          `\n// Response Body:\n${JSON.stringify(selected.res, null, 2)}`;
+      }
+    }
+
+    function selectLog(idx) {
+      renderLogs(logs[idx]);
+    }
+
+    function addToCart(skuId) {
+      const s = skus.find(x => x.skuId === skuId);
+      if (!s) return;
+      const existing = cart.find(x => x.skuId === skuId);
+      if (existing) existing.qty += 1;
+      else cart.push({ ...s, qty: 1 });
+      pushLog("GET", `/api/catalog/skus/${s.skuId}/listings`, 200, null, [{ supplierId: "dddddddd-0000-0000-0000-000000000001", listPrice: s.price, currency: "IRR", availableStock: s.available }]);
+      renderAll();
+    }
+
+    function updateCartQty(skuId, delta) {
+      const item = cart.find(x => x.skuId === skuId);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) cart = cart.filter(x => x.skuId !== skuId);
+      renderAll();
+    }
+
+    function runFullCheckout() {
+      if (cart.length === 0) return;
+      const lat = parseFloat(document.getElementById("chk-lat").value || "35.6892");
+      const lon = parseFloat(document.getElementById("chk-lon").value || "51.3890");
+      const inTehran = lat >= 35.5 && lat <= 35.85 && lon >= 51.1 && lon <= 51.65;
+
+      const ordId = "ord-" + Math.random().toString(16).slice(2, 10);
+      activeOrderId = ordId;
+
+      pushLog("GET", `/api/fulfillment/skus/${cart[0].skuId}/suppliers?latitude=${lat}&longitude=${lon}`, 200, null, [
+        { supplierId: "dddddddd-0000-0000-0000-000000000001", isInArea: inTehran, requiresCustomerConfirmation: !inTehran }
+      ]);
+
+      pushLog("POST", "/api/orders", 201, { customerId: "99999999-0000-0000-0000-000000000001", supplierId: "dddddddd-0000-0000-0000-000000000001" }, { id: ordId, status: "Created" });
+
+      cart.forEach(item => {
+        const s = skus.find(x => x.skuId === item.skuId);
+        if (s && s.available >= item.qty) {
+          s.available -= item.qty;
+          s.reserved += item.qty;
+          s.version += 1;
+        }
+        pushLog("POST", "/api/fulfillment/reserve", 200, { orderId: ordId, skuId: item.skuId, quantity: item.qty }, { reservationId: "res-" + Math.random().toString(16).slice(2, 8), newVersion: s ? s.version : 2 });
+      });
+
+      const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+      pushLog("POST", "/api/payments", 201, { orderId: ordId, amount: total, currency: "IRR" }, { id: "pay-" + Math.random().toString(16).slice(2, 8), status: "Settled" });
+      pushLog("POST", `/api/orders/${ordId}/confirm`, 204, null, { orderId: ordId, finalState: "Confirmed" });
+
+      currentOrderState = 4;
+      const stepsBox = document.getElementById("chk-steps");
+      stepsBox.classList.remove("hidden");
+      stepsBox.innerHTML = `<strong>✓ سفارش #${ordId} با موفقیت ثبت، رزرو و تأیید شد!</strong><br/>ارزیابی PostGIS: ${inTehran ? 'داخل محدوده خدمات تهران' : 'خارج از محدوده (با تأیید هزینه ارسال)'}`;
+      cart = [];
+      renderAll();
+    }
+
+    function adminAddProduct() {
+      const name = document.getElementById("adm-name").value.trim() || "الکتروکاردیوگراف دیجیتال";
+      const code = (document.getElementById("adm-sku").value.trim() || "ECG-" + Math.floor(Math.random() * 900 + 100)).toUpperCase();
+      const price = Number(document.getElementById("adm-price").value) || 240000000;
+      const newSku = {
+        skuId: "sku-" + Date.now(),
+        code,
+        name,
+        slug: code.toLowerCase(),
+        price,
+        available: 20,
+        reserved: 0,
+        version: 1,
+        rx: false
+      };
+      skus.unshift(newSku);
+      pushLog("POST", "/api/catalog/products", 201, { name, slug: newSku.slug, listPrice: price }, { id: newSku.skuId, code });
+      renderAll();
+    }
+
+    function adminAdjustStock() {
+      const skuId = document.getElementById("adm-stock-sku").value;
+      const qty = Number(document.getElementById("adm-stock-qty").value);
+      const s = skus.find(x => x.skuId === skuId);
+      if (!s) return;
+      s.available = qty;
+      s.version += 1;
+      pushLog("POST", "/api/inventory/adjust", 204, { skuId, supplierId: "dddddddd-0000-0000-0000-000000000001", newAvailableQuantity: qty }, { skuCode: s.code, availableQuantity: s.available, version: s.version });
+      renderAll();
+    }
+
+    function dbgStepRank() {
+      const s = skus[0];
+      pushLog("GET", `/api/fulfillment/skus/${s.skuId}/suppliers?latitude=35.6892&longitude=51.3890`, 200, null, [
+        { supplierId: "dddddddd-0000-0000-0000-000000000001", availableQuantity: s.available, listPrice: s.price, isInArea: true }
+      ]);
+    }
+
+    function dbgStepReserve() {
+      const s = skus[0];
+      activeOrderId = "ord-" + Math.random().toString(16).slice(2, 8);
+      if (s.available > 0) {
+        s.available -= 1;
+        s.reserved += 1;
+        s.version += 1;
+      }
+      currentOrderState = 0;
+      pushLog("POST", "/api/fulfillment/reserve", 200, { orderId: activeOrderId, skuId: s.skuId, quantity: 1 }, { orderId: activeOrderId, state: "Created", version: s.version });
+      renderAll();
+    }
+
+    function dbgStepPay() {
+      if (!activeOrderId) activeOrderId = "ord-demo";
+      currentOrderState = 2;
+      pushLog("POST", "/api/payments", 201, { orderId: activeOrderId, amount: skus[0].price, currency: "IRR" }, { orderId: activeOrderId, paymentState: "Settled", orderState: "Paid" });
+      renderAll();
+    }
+
+    function dbgStepConfirm() {
+      if (!activeOrderId) activeOrderId = "ord-demo";
+      if (skus[0].reserved > 0) {
+        skus[0].reserved -= 1;
+        skus[0].version += 1;
+      }
+      currentOrderState = 4;
+      pushLog("POST", `/api/orders/${activeOrderId}/confirm`, 204, null, { orderId: activeOrderId, orderState: "Confirmed" });
+      renderAll();
+    }
+
+    function dbgStepInvalid() {
+      pushLog("POST", "/api/orders/ord-invalid/confirm", 400, null, {
+        title: "تأیید ناموفق بود",
+        status: 400,
+        errorCode: "order_invalid_transition",
+        detail: "Order cannot transition directly from Created to Confirmed without Payment."
+      });
+    }
+
+    function resetAll() {
+      skus = JSON.parse(JSON.stringify(INITIAL_SKUS));
+      cart = [];
+      logs = [];
+      currentOrderState = -1;
+      activeOrderId = null;
+      renderAll();
+      document.getElementById("log-detail").textContent = "// داده‌ها بازنشانی شدند.";
+    }
+
+    function renderAll() {
+      document.getElementById("nav-cart-count").textContent = cart.reduce((s, i) => s + i.qty, 0);
+
+      // Store grid
+      document.getElementById("store-grid").innerHTML = skus.map(s => `
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div style="height: 92px; border-radius: 8px; background: var(--surface-alt); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--primary); font-weight: 700; margin-bottom: 10px;">
+            <span>${s.code}</span>
+            <span style="font-size: 0.78rem; color: var(--ink-soft);">موجودی آزاد: ${s.available} عدد (v${s.version})</span>
+          </div>
+          <h3 style="font-size: 1rem; margin: 0 0 6px;">${s.name}</h3>
+          ${s.rx ? '<span class="tag" style="align-self: flex-start; font-size: 0.72rem; margin-bottom: 8px;">نیازمند مجوز / نسخه</span>' : ''}
+          <div style="margin-top: auto; padding-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <strong class="mono" style="color: var(--primary);">${s.price.toLocaleString("fa-IR")} ریال</strong>
+            <button class="btn btn-ghost" onclick="addToCart('${s.skuId}')">افزودن به سبد +</button>
+          </div>
+        </div>
+      `).join("");
+
+      // Checkout cart list
+      const cartEl = document.getElementById("cart-list");
+      if (cart.length === 0) {
+        cartEl.innerHTML = `<div class="card" style="color: var(--ink-soft);">سبد خرید خالی است. از تب «ویترین و فروشگاه» محصولی را اضافه کنید.</div>`;
+      } else {
+        cartEl.innerHTML = cart.map(c => `
+          <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>${c.name}</strong>
+              <div class="mono" style="font-size: 0.8rem; color: var(--ink-soft);">${c.code} · ${(c.price * c.qty).toLocaleString("fa-IR")} ریال</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="btn btn-ghost" onclick="updateCartQty('${c.skuId}', -1)">−</button>
+              <strong class="mono">${c.qty}</strong>
+              <button class="btn btn-ghost" onclick="updateCartQty('${c.skuId}', 1)">+</button>
+            </div>
+          </div>
+        `).join("");
+      }
+      const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      document.getElementById("chk-total").textContent = total.toLocaleString("fa-IR") + " ریال";
+
+      // Admin SKU dropdown
+      document.getElementById("adm-stock-sku").innerHTML = skus.map(s => `<option value="${s.skuId}">${s.code} — ${s.name} (موجودی: ${s.available})</option>`).join("");
+
+      // Debugger stock table
+      document.getElementById("dbg-stock-tbody").innerHTML = skus.map(s => `
+        <tr>
+          <td class="mono" style="color: var(--primary); font-weight: 700;">${s.code}</td>
+          <td>${s.name}</td>
+          <td class="mono">${s.price.toLocaleString("fa-IR")}</td>
+          <td class="mono" style="color: var(--primary); font-weight: 700;">${s.available}</td>
+          <td class="mono" style="color: var(--amber); font-weight: 700;">${s.reserved}</td>
+          <td class="mono">v${s.version}</td>
+        </tr>
+      `).join("");
+
+      // Debugger state badges
+      document.getElementById("dbg-state-badges").innerHTML = STATES.map((st, idx) => {
+        const active = currentOrderState === idx;
+        const done = currentOrderState > idx;
+        return `
+          <div style="padding: 8px 12px; border-radius: 8px; border: 1px solid ${active ? 'var(--primary)' : 'var(--line)'}; background: ${active ? 'var(--primary)' : done ? 'var(--surface-alt)' : 'var(--surface)'}; color: ${active ? '#fff' : 'var(--ink)'}; display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: ${active ? '700' : '500'};">
+            <span>${st}</span>
+            <span class="mono">${active ? '● ACTIVE' : done ? '✓ DONE' : 'PENDING'}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
