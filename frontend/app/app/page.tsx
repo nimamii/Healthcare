@@ -1,4 +1,6 @@
 import Link from "next/link";
+import DashboardClient from "./DashboardClient";
+import AdminPanelClient from "./AdminPanelClient";
 
 type Product = {
   id: string;
@@ -22,8 +24,6 @@ async function getProducts(): Promise<FetchResult> {
     if (!res.ok) return { ok: false, reason: "error" };
     return { ok: true, products: (await res.json()) as Product[] };
   } catch {
-    // Nothing answered: the API container is not running, or the browser
-    // cannot reach the host port.
     return { ok: false, reason: "unreachable" };
   }
 }
@@ -38,16 +38,19 @@ export default async function DashboardPage() {
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
       >
         <div>
-          <Link href="/" style={{ color: "var(--ink-soft)", fontSize: "0.9rem" }}>
+          <Link href="/" style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: 600 }}>
             بازگشت به سایت
           </Link>
-          <h1 style={{ fontSize: "1.6rem", marginTop: 4 }}>داشبورد</h1>
+          <h1 style={{ fontSize: "1.6rem", marginTop: 4 }}>داشبورد کاربری و وضعیت سامانه</h1>
         </div>
-        <span className="tag">پنل نمایشی</span>
+        <span className="tag">پنل کاربری</span>
       </div>
 
       <section className="container" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: "1.15rem", marginBottom: 12 }}>کاتالوگ محصولات</h2>
+        <DashboardClient />
+        <AdminPanelClient />
+
+        <h2 style={{ fontSize: "1.15rem", marginBottom: 12 }}>کاتالوگ زنده بک‌اند</h2>
         {result.ok ? (
           result.products.length === 0 ? (
             <div className="card" style={{ color: "var(--ink-soft)" }}>
@@ -78,9 +81,9 @@ export default async function DashboardPage() {
           )
         ) : result.reason === "unreachable" ? (
           <div className="card" style={{ color: "var(--ink-soft)" }}>
-            API در دسترس نیست. استک را بالا بیاور:
+            API بک‌اند در حال حاضر اجرا نشده است. برای اتصال زنده، کانتینرها را بالا بیاورید:
             <pre className="mono" style={{ marginTop: 12, fontSize: "0.85rem" }}>
-              {".\\build.ps1 -Up"}
+              {"docker compose up -d"}
             </pre>
           </div>
         ) : (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ShopClient from "./ShopClient";
 
 type Product = {
   id: string;
@@ -9,124 +10,89 @@ type Product = {
   isActive: boolean;
 };
 
-type FetchResult =
-  | { ok: true; products: Product[] }
-  | { ok: false; reason: "unreachable" | "error" };
+const DEMO_PRODUCTS: Product[] = [
+  {
+    id: "aaaaaaaa-0000-0000-0000-000000000001",
+    name: "مانیتور بیمار قابل حمل",
+    slug: "portable-patient-monitor",
+    categoryId: "33333333-3333-3333-3333-333333333333",
+    requiresPrescription: false,
+    isActive: true,
+  },
+  {
+    id: "aaaaaaaa-0000-0000-0000-000000000002",
+    name: "دستگاه فشارسنج دیجیتال",
+    slug: "digital-blood-pressure",
+    categoryId: "22222222-2222-2222-2222-222222222222",
+    requiresPrescription: false,
+    isActive: true,
+  },
+  {
+    id: "aaaaaaaa-0000-0000-0000-000000000003",
+    name: "پالس اکسیمتر انگشتی",
+    slug: "fingertip-pulse-oximeter",
+    categoryId: "22222222-2222-2222-2222-222222222222",
+    requiresPrescription: false,
+    isActive: true,
+  },
+  {
+    id: "aaaaaaaa-0000-0000-0000-000000000004",
+    name: "کمک تنفسی خانگی",
+    slug: "home-ventilator",
+    categoryId: "33333333-3333-3333-3333-333333333333",
+    requiresPrescription: true,
+    isActive: true,
+  },
+  {
+    id: "aaaaaaaa-0000-0000-0000-000000000005",
+    name: "دستگاه سونوگرافی قابل حمل",
+    slug: "portable-ultrasound",
+    categoryId: "33333333-3333-3333-3333-333333333333",
+    requiresPrescription: true,
+    isActive: true,
+  },
+];
 
-async function getProducts(): Promise<FetchResult> {
+async function getProducts(): Promise<{ products: Product[]; isDemoFallback: boolean }> {
   try {
     const res = await fetch(
       `${process.env.API_URL ?? "http://localhost:8090"}/api/catalog/products`,
       { cache: "no-store" },
     );
-    if (!res.ok) return { ok: false, reason: "error" };
-    return { ok: true, products: (await res.json()) as Product[] };
+    if (!res.ok) return { products: DEMO_PRODUCTS, isDemoFallback: true };
+    const data = (await res.json()) as Product[];
+    return data.length > 0
+      ? { products: data, isDemoFallback: false }
+      : { products: DEMO_PRODUCTS, isDemoFallback: true };
   } catch {
-    return { ok: false, reason: "unreachable" };
+    return { products: DEMO_PRODUCTS, isDemoFallback: true };
   }
 }
 
 export default async function ShopPage() {
-  const result = await getProducts();
+  const { products, isDemoFallback } = await getProducts();
 
   return (
     <main>
       <header className="container" style={{ paddingBlock: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link href="/" style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
+          <Link href="/" style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--primary)" }}>
             یا علی
           </Link>
-          <nav style={{ display: "flex", gap: 16, fontSize: "0.95rem" }}>
+          <nav style={{ display: "flex", gap: 16, fontSize: "0.95rem", alignItems: "center" }}>
             <Link href="/about">درباره ما</Link>
             <Link href="/contact">تماس با ما</Link>
-            <Link href="/app">ورود به پنل</Link>
+            <Link href="/checkout">سبد خرید</Link>
+            <Link href="/login">ورود</Link>
+            <Link href="/app" className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.88rem" }}>
+              ورود به پنل
+            </Link>
           </nav>
         </div>
       </header>
 
-      <section className="container" style={{ paddingBlock: "48px 80px" }}>
-        <h1 style={{ fontSize: "2rem", marginBottom: 8 }}>فروشگاه</h1>
-        <p style={{ color: "var(--ink-soft)", marginTop: 0 }}>
-          تجهیزات پزشکی با کیفیت، از تأمین‌کنندگان معتبر.
-        </p>
-
-        <div style={{ marginTop: 32 }}>
-          {result.ok ? (
-            result.products.length === 0 ? (
-              <div className="card" style={{ color: "var(--ink-soft)" }}>
-                محصولی موجود نیست.
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                  gap: 20,
-                }}
-              >
-                {result.products.map((p) => (
-                  <div key={p.id} className="card" style={{ display: "flex", flexDirection: "column" }}>
-                    <div
-                      style={{
-                        width: "100%",
-                        height: 120,
-                        borderRadius: 8,
-                        background: "var(--surface-alt)",
-                        marginBottom: 12,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--ink-soft)",
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      تصویر محصول
-                    </div>
-                    <h3 style={{ fontSize: "1.05rem", marginBlock: 4 }}>{p.name}</h3>
-                    <div className="mono" style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>
-                      {p.slug}
-                    </div>
-                    {p.requiresPrescription && (
-                      <span
-                        className="tag"
-                        style={{ fontSize: "0.75rem", marginTop: 8, alignSelf: "flex-start" }}
-                      >
-                        نسخه‌دار
-                      </span>
-                    )}
-                    <div
-                      style={{
-                        marginTop: 16,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ color: "var(--teal)", fontWeight: 600 }}>استعلام قیمت</span>
-                      <button className="btn btn-ghost" style={{ padding: "6px 14px", fontSize: "0.85rem" }}>
-                        افزودن به سبد
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          ) : result.reason === "unreachable" ? (
-            <div className="card" style={{ color: "var(--ink-soft)" }}>
-              فروشگاه در دسترس نیست. استک را بالا بیاور:
-              <pre className="mono" style={{ marginTop: 12, fontSize: "0.85rem" }}>
-                {".\\build.ps1 -Up"}
-              </pre>
-            </div>
-          ) : (
-            <div className="card" style={{ color: "var(--pulse)" }}>
-              خطا در دریافت محصولات. لاگ کانتینر را ببین:
-              <pre className="mono" style={{ marginTop: 12, fontSize: "0.85rem" }}>
-                {"docker logs hc-api"}
-              </pre>
-            </div>
-          )}
-        </div>
+      <section className="container" style={{ paddingBlock: "36px 80px" }}>
+        <ShopClient products={products} isDemoFallback={isDemoFallback} />
       </section>
     </main>
   );

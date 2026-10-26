@@ -3,17 +3,20 @@
 :root {
   color-scheme: light;
 
-  /* Design tokens — the only source of truth for colour. */
-  --ink: #16232a;
-  --paper: #f5f7f6;
-  --teal: #1f6f6b;
-  --amber: #d98f35;
-  --pulse: #d93a49;
-
-  --ink-soft: #4b5a61;
-  --line: #dde3e1;
+  /* Blue environment design tokens — the single source of truth for colour. */
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --paper: #f0f6ff;
   --surface: #ffffff;
-  --surface-alt: #eef2f1;
+  --surface-alt: #e0ecff;
+  --line: #c7d9f2;
+
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --primary-soft: #dbeafe;
+  --teal: var(--primary);
+  --amber: #d97706;
+  --pulse: #dc2626;
 
   --radius: 12px;
 }
@@ -26,16 +29,23 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--paper);
+  background: linear-gradient(180deg, #eaf2ff 0%, var(--paper) 320px, #f8fbff 100%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: Vazirmatn, Tahoma, sans-serif;
   font-size: 16px;
   line-height: 1.7;
+  min-height: 100vh;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--primary);
 }
 
 h1,
@@ -44,6 +54,13 @@ h3,
 h4 {
   line-height: 1.4;
   margin: 0;
+  color: var(--ink);
+}
+
+input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
 }
 
 .mono {
@@ -62,6 +79,7 @@ h4 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px;
+  box-shadow: 0 4px 16px rgba(29, 78, 216, 0.05);
 }
 
 .btn {
@@ -74,17 +92,29 @@ h4 {
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-primary {
-  background: var(--teal);
-  color: #fff;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  color: #ffffff;
 }
 
 .btn-ghost {
-  background: transparent;
+  background: var(--surface);
   border-color: var(--line);
   color: var(--ink);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-alt);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .tag {
@@ -94,5 +124,6 @@ h4 {
   background: var(--surface-alt);
   border: 1px solid var(--line);
   font-size: 0.85rem;
-  color: var(--ink-soft);
+  color: var(--primary);
+  font-weight: 500;
 }

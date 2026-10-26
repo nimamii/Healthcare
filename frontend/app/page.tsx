@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const stats = [
   { value: "۱۶۰+", label: "تست خودکار پاس‌شده" },
-  { value: "۴", label: "ماژول فعال بک‌اند" },
+  { value: "۸", label: "ماژول فعال بک‌اند" },
   { value: "لحظه‌ای", label: "همگام‌سازی موجودی" },
 ];
 
@@ -16,12 +16,20 @@ const modules = [
     desc: "موجودی لحظه‌ای تأمین‌کننده، با رزرو و کنترل هم‌زمانی برای جلوگیری از فروش بیش از موجودی.",
   },
   {
-    name: "هویت",
-    desc: "احراز هویت و نقش‌ها؛ دسترسی همیشه سمت سرور تصمیم می‌گیرد.",
+    name: "هویت و امنیت",
+    desc: "احراز هویت، ثبت رویدادهای امنیتی و نقش‌ها؛ دسترسی همیشه سمت سرور تصمیم می‌گیرد.",
   },
   {
-    name: "جغرافیا",
-    desc: "محدوده خدمات با PostGIS؛ آدرس خارج از محدوده مشتری را بلاک نمی‌کند، هزینه اضافه را پرسش می‌کند.",
+    name: "جغرافیا و تأمین",
+    desc: "محدوده خدمات با PostGIS و رتبه‌بندی تأمین‌کنندگان؛ آدرس خارج از محدوده مشتری را بلاک نمی‌کند.",
+  },
+  {
+    name: "سفارش‌ها",
+    desc: "مدیریت چرخه حیات سفارش از ثبت اولیه و رزرو کالا تا تأیید نهایی و تحویل.",
+  },
+  {
+    name: "پرداخت‌ها",
+    desc: "پردازش امن تراکنش‌ها و استعلام وضعیت مستقیم از درگاه پرداخت.",
   },
 ];
 
@@ -36,10 +44,16 @@ export default function Home() {
             alignItems: "center",
           }}
         >
-          <strong style={{ fontSize: "1.2rem" }}>یا علی</strong>
-          <nav style={{ display: "flex", gap: 16, fontSize: "0.95rem" }}>
+          <strong style={{ fontSize: "1.2rem", color: "var(--primary)" }}>یا علی</strong>
+          <nav style={{ display: "flex", gap: 16, fontSize: "0.95rem", alignItems: "center" }}>
+            <Link href="/shop">فروشگاه</Link>
             <Link href="#modules">ماژول‌ها</Link>
-            <Link href="/app">ورود به پنل</Link>
+            <Link href="/about">درباره ما</Link>
+            <Link href="/contact">تماس با ما</Link>
+            <Link href="/login">ورود</Link>
+            <Link href="/app" className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.88rem" }}>
+              ورود به پنل
+            </Link>
           </nav>
         </div>
       </header>
@@ -54,12 +68,12 @@ export default function Home() {
           حالت، موجودی لحظه‌ای در بازار منعکس می‌شود.
         </p>
         <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-          <Link href="/app" className="btn btn-primary">
+          <Link href="/shop" className="btn btn-primary">
+            مشاهده فروشگاه
+          </Link>
+          <Link href="/app" className="btn btn-ghost">
             ورود به پنل
           </Link>
-          <a href="#modules" className="btn btn-ghost">
-            دیدن ماژول‌ها
-          </a>
         </div>
 
         <div
@@ -72,7 +86,7 @@ export default function Home() {
         >
           {stats.map((s) => (
             <div key={s.label} className="card" style={{ textAlign: "center" }}>
-              <div className="mono" style={{ fontSize: "1.6rem", color: "var(--teal)" }}>
+              <div className="mono" style={{ fontSize: "1.6rem", color: "var(--primary)" }}>
                 {s.value}
               </div>
               <div style={{ color: "var(--ink-soft)", fontSize: "0.9rem" }}>{s.label}</div>
@@ -96,7 +110,7 @@ export default function Home() {
         >
           {modules.map((m) => (
             <div key={m.name} className="card">
-              <h3 style={{ fontSize: "1.1rem", marginBottom: 8 }}>{m.name}</h3>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: 8, color: "var(--primary)" }}>{m.name}</h3>
               <p style={{ color: "var(--ink-soft)", fontSize: "0.92rem", margin: 0 }}>
                 {m.desc}
               </p>
