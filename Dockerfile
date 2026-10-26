@@ -80,8 +80,9 @@ ENTRYPOINT ["dotnet", "/app/dev/Healthcare.Api.dll"]
 # ---------------------------------------------------------------------------
 # Publish — runtime only, no SDK, no source.
 # ---------------------------------------------------------------------------
-FROM base AS publish
+FROM restore AS publish
 ARG BUILD_CONFIGURATION=Release
+COPY . .
 RUN dotnet publish "src/Healthcare.Api/Healthcare.Api.csproj" \
     -c "$BUILD_CONFIGURATION" \
     -o /app/publish \

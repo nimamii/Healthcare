@@ -7,7 +7,6 @@
     <ProjectReference Include="..\Fulfillment.Domain\Fulfillment.Domain.csproj" />
     <ProjectReference Include="..\Fulfillment.Contracts\Fulfillment.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
-    <ProjectReference Include="..\..\Inventory\Inventory.Infrastructure\Inventory.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />

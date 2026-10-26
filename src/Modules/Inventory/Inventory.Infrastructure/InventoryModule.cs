@@ -27,6 +27,7 @@ public sealed class InventoryModule : IModule
             sp.GetRequiredService<InventoryUnitOfWork>());
 
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IInventoryReader, InventoryReader>();
     }
 
     /// <summary>

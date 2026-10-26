@@ -13,6 +13,7 @@ using Healthcare.Modules.Fulfillment.Api;
 using Healthcare.Modules.Fulfillment.Infrastructure;
 using Healthcare.Modules.Identity.Api;
 using Healthcare.Modules.Identity.Infrastructure;
+using Healthcare.Modules.Inventory.Api;
 using Healthcare.Modules.Inventory.Infrastructure;
 using Healthcare.SharedKernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -290,6 +291,7 @@ app.MapCatalogEndpoints();
 app.MapOrdersEndpoints();
 app.MapPaymentsEndpoints();
 app.MapFulfillmentEndpoints();
+app.MapInventoryEndpoints();
 
 foreach (var module in modules)
 {

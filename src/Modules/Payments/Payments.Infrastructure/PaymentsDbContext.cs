@@ -89,6 +89,7 @@ public sealed class PaymentsModule : IModule
 
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<PaymentsUnitOfWork>();
 
         // درگاه پرداخت: در محیط توسعه از Mock استفاده می‌کنیم.
         // در Production باید ارائه‌دهنده واقعی ثبت شود.

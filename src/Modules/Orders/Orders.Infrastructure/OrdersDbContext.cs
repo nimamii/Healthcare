@@ -103,6 +103,7 @@ public sealed class OrdersModule : IModule
 
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<OrdersUnitOfWork>();
 
         // Keyed, so it cannot collide with another module's unit of work.
         services.AddKeyedScoped<IUnitOfWork>(UnitOfWorkKeys.Orders, (sp, _) =>

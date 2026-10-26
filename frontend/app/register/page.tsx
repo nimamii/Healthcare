@@ -124,7 +124,7 @@ export default function RegisterPage() {
 
             <p style={{ textAlign: "center", fontSize: "0.88rem", color: "var(--ink-soft)", margin: 0 }}>
               حساب داری؟{" "}
-              <Link href="/login" style={{ color: "var(--teal)", fontWeight: 600 }}>
+              <Link href="/login" style={{ color: "var(--primary)", fontWeight: 600 }}>
                 ورود
               </Link>
             </p>

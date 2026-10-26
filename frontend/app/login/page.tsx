@@ -58,7 +58,7 @@ export default function LoginPage() {
 
         <div className="card">
           {success ? (
-            <div style={{ textAlign: "center", color: "var(--teal)" }}>
+            <div style={{ textAlign: "center", color: "var(--primary)" }}>
               ورود موفق! در حال انتقال...
             </div>
           ) : (
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
               <p style={{ textAlign: "center", fontSize: "0.88rem", color: "var(--ink-soft)", margin: 0 }}>
                 حساب نداری؟{" "}
-                <Link href="/register" style={{ color: "var(--teal)", fontWeight: 600 }}>
+                <Link href="/register" style={{ color: "var(--primary)", fontWeight: 600 }}>
                   ثبت‌نام
                 </Link>
               </p>
