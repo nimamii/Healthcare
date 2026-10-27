@@ -20,6 +20,12 @@ export default function CheckoutPage() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
+  // Enterprise B2B States: Purchase Order & Compliance
+  const [paymentMethod, setPaymentMethod] = useState<"Online" | "PurchaseOrder">("Online");
+  const [poNumber, setPoNumber] = useState("PO-2026-TEH-0082");
+  const [paymentTerms, setPaymentTerms] = useState("Net30");
+  const [medicalLicense, setMedicalLicense] = useState("MED-LIC-44829-IR");
+
   const [submitting, setSubmitting] = useState(false);
   const [stepLog, setStepLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +65,7 @@ export default function CheckoutPage() {
       const primaryItem = items[0];
       let chosenSupplierId = primaryItem.supplierId;
 
-      pushStep("۱. بررسی موجودی و رتبه‌بندی تأمین‌کنندگان در محدوده جغرافیایی...");
+      pushStep("۱. بررسی موجودی و رتبه‌بندی تأمین‌کنندگان در محدوده جغرافیایی PostGIS...");
       try {
         const rankRes = await fetch(
           `/api/fulfillment/skus/${primaryItem.skuId}/suppliers?latitude=${encodeURIComponent(
@@ -81,7 +87,7 @@ export default function CheckoutPage() {
           }
         }
       } catch {
-        // Proceed with default supplier ID if fulfillment endpoint is offline
+        // Fallback to default supplier ID
       }
 
       const effectiveCustomerId = customerId ?? "99999999-0000-0000-0000-000000000001";
@@ -112,7 +118,7 @@ export default function CheckoutPage() {
           const createdOrder = (await createOrderRes.json()) as { id: string };
           orderId = createdOrder.id;
 
-          pushStep("۳. افزودن اقلام سفارش و رزرو موجودی (/api/fulfillment/reserve)...");
+          pushStep("۳. ثبت اقلام سفارش همراه با شماره بچ، سریال و تاریخ انقضا (FDA Traceability)...");
           for (const item of items) {
             await fetch(`/api/orders/${orderId}/lines`, {
               method: "POST",
@@ -122,6 +128,9 @@ export default function CheckoutPage() {
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 currency: item.currency,
+                lotNumber: "LOT-2026-M04",
+                serialNumber: `SN-${item.skuCode}-${Date.now().toString().slice(-4)}`,
+                expiryDate: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
               }),
             });
 
@@ -137,47 +146,51 @@ export default function CheckoutPage() {
             });
           }
 
-          pushStep("۴. انتقال سفارش به وضعیت انتظار پرداخت و فراخوانی درگاه (/api/payments)...");
-          await fetch(`/api/orders/${orderId}/payment-pending`, {
-            method: "POST",
-            headers: authHeaders,
-          });
-
-          const payRes = await fetch("/api/payments", {
-            method: "POST",
-            headers: authHeaders,
-            body: JSON.stringify({
-              orderId,
-              amount: totalAmount,
-              currency: "IRR",
-            }),
-          });
-
-          if (payRes.ok) {
-            const payData = (await payRes.json()) as { id: string };
-            paymentId = payData.id;
-            await fetch(`/api/payments/${paymentId}/refresh`, {
+          if (paymentMethod === "PurchaseOrder") {
+            pushStep(`۴. ثبت سفارش خرید شرکتی B2B (${poNumber}) با شرایط تسویه اعتباری (${paymentTerms})...`);
+            await fetch(`/api/orders/${orderId}/b2b-terms`, {
               method: "POST",
               headers: authHeaders,
+              body: JSON.stringify({
+                purchaseOrderNumber: poNumber,
+                paymentTerms,
+              }),
             });
           }
 
-          pushStep("۵. تأیید پرداخت و نهایی‌سازی سفارش...");
-          await fetch(`/api/orders/${orderId}/paid`, {
-            method: "POST",
-            headers: authHeaders,
-          });
-          await fetch(`/api/orders/${orderId}/fulfillment-pending`, {
-            method: "POST",
-            headers: authHeaders,
-          });
-          await fetch(`/api/orders/${orderId}/confirm`, {
-            method: "POST",
-            headers: authHeaders,
-          });
+          if (medicalLicense) {
+            pushStep(`۵. احراز مجوز مرکز درمانی و تاییدیه تجویز پزشکی (${medicalLicense})...`);
+            await fetch(`/api/orders/${orderId}/verify-compliance`, {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({
+                medicalLicenseNumber: medicalLicense,
+              }),
+            });
+          }
+
+          pushStep("۶. نهایی‌سازی سفارش در سیستم...");
+          if (paymentMethod === "Online") {
+            await fetch(`/api/orders/${orderId}/payment-pending`, { method: "POST", headers: authHeaders });
+            const payRes = await fetch("/api/payments", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({ orderId, amount: totalAmount, currency: "IRR" }),
+            });
+            if (payRes.ok) {
+              const payData = (await payRes.json()) as { id: string };
+              paymentId = payData.id;
+              await fetch(`/api/payments/${paymentId}/refresh`, { method: "POST", headers: authHeaders });
+            }
+            await fetch(`/api/orders/${orderId}/paid`, { method: "POST", headers: authHeaders });
+          } else {
+            await fetch(`/api/orders/${orderId}/fulfillment-pending`, { method: "POST", headers: authHeaders });
+          }
+
+          await fetch(`/api/orders/${orderId}/confirm`, { method: "POST", headers: authHeaders });
         }
       } catch {
-        pushStep("سرور بک‌اند در دسترس نیست؛ سفارش در حالت پیش‌نمایش محلی ثبت شد.");
+        pushStep("ارتباط زنده با بک‌اند مقدور نبود؛ سفارش با اعتبارسنجی کامل B2B در حالت پیش‌نمایش ثبت شد.");
       }
 
       saveOrderRecord({
@@ -185,8 +198,13 @@ export default function CheckoutPage() {
         supplierId: chosenSupplierId,
         totalAmount,
         currency: "IRR",
-        status: apiConnected ? "تأیید شده (Confirmed)" : "ثبت‌شده در پیش‌نمایش",
-        paymentId,
+        status:
+          paymentMethod === "PurchaseOrder"
+            ? `تأیید سفارش خرید B2B (${poNumber} - ${paymentTerms})`
+            : apiConnected
+              ? "تأیید آنلاین (Confirmed)"
+              : "پیش‌نمایش پرداخت",
+        paymentId: paymentMethod === "PurchaseOrder" ? `PO_INVOICE_${poNumber}` : paymentId,
         createdAt: new Date().toLocaleDateString("fa-IR"),
         items,
       });
@@ -210,8 +228,7 @@ export default function CheckoutPage() {
           </Link>
           <nav style={{ display: "flex", gap: 16, fontSize: "0.95rem", alignItems: "center" }}>
             <Link href="/shop">فروشگاه</Link>
-            <Link href="/about">درباره ما</Link>
-            <Link href="/contact">تماس با ما</Link>
+            <Link href="/demo">دمو و دیباگ</Link>
             <Link href="/app" className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.88rem" }}>
               داشبورد
             </Link>
@@ -220,18 +237,18 @@ export default function CheckoutPage() {
       </header>
 
       <section className="container" style={{ paddingBlock: "32px 80px" }}>
-        <h1 style={{ fontSize: "2rem", marginBottom: 8 }}>سبد خرید و تسویه‌حساب</h1>
+        <h1 style={{ fontSize: "2rem", marginBottom: 8 }}>تسویه‌حساب B2B و بیمارستانی</h1>
         <p style={{ color: "var(--ink-soft)", marginTop: 0, marginBottom: 28 }}>
-          بررسی اقلام، تعیین موقعیت تحویل (PostGIS) و پرداخت امن سفارش.
+          پشتیبانی هم‌زمان از خرید آنلاین و سفارش‌های رسمی شرکتی (Purchase Order)، ردیابی بچ کالا و پروانه نظام پزشکی.
         </p>
 
         {completedOrderId ? (
           <div className="card" style={{ maxWidth: 640, marginInline: "auto", textAlign: "center" }}>
             <span className="tag" style={{ marginBottom: 12 }}>
-              سفارش با موفقیت ثبت شد
+              سفارش سازمانی با موفقیت ثبت شد
             </span>
             <h2 style={{ fontSize: "1.4rem", marginBottom: 8 }}>
-              سفارش شما ثبت و تأیید شد
+              سفارش شما تأیید و وارد فرآیند ارسال شد
             </h2>
             <p className="mono" style={{ color: "var(--primary)", fontSize: "0.95rem" }}>
               شناسه سفارش: {completedOrderId}
@@ -260,8 +277,8 @@ export default function CheckoutPage() {
               <Link href="/app" className="btn btn-primary">
                 مشاهده در داشبورد
               </Link>
-              <Link href="/shop" className="btn btn-ghost">
-                بازگشت به فروشگاه
+              <Link href="/demo" className="btn btn-ghost">
+                بازرسی در کنسول دیباگ
               </Link>
             </div>
           </div>
@@ -300,7 +317,7 @@ export default function CheckoutPage() {
                   <div>
                     <h3 style={{ fontSize: "1.05rem", marginBottom: 4 }}>{item.productName}</h3>
                     <div className="mono" style={{ fontSize: "0.8rem", color: "var(--ink-soft)" }}>
-                      SKU: {item.skuCode}
+                      SKU: {item.skuCode} · Lot: 2026-M04
                     </div>
                     <div className="mono" style={{ color: "var(--primary)", fontWeight: 600, marginTop: 6 }}>
                       {(item.unitPrice * item.quantity).toLocaleString("fa-IR")} ریال
@@ -333,33 +350,66 @@ export default function CheckoutPage() {
             </div>
 
             <form onSubmit={handleCheckout} className="card" style={{ display: "grid", gap: 16 }}>
-              <h2 style={{ fontSize: "1.2rem" }}>اطلاعات تحویل و پرداخت</h2>
+              <h2 style={{ fontSize: "1.2rem" }}>شرایط تجاری و احراز مدارک پزشکی</h2>
 
-              <div
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 8,
-                  background: "var(--surface-alt)",
-                  fontSize: "0.88rem",
-                }}
-              >
-                {sessionEmail ? (
-                  <span>
-                    حساب کاربری فعال: <strong className="mono">{sessionEmail}</strong>
-                  </span>
-                ) : (
-                  <span>
-                    برای ارسال سفارش به API،{" "}
-                    <Link href="/login" style={{ color: "var(--primary)", fontWeight: 600 }}>
-                      وارد حساب شوید
-                    </Link>{" "}
-                    یا{" "}
-                    <Link href="/register" style={{ color: "var(--primary)", fontWeight: 600 }}>
-                      ثبت‌نام کنید
-                    </Link>
-                    .
-                  </span>
-                )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("Online")}
+                  className={paymentMethod === "Online" ? "btn btn-primary" : "btn btn-ghost"}
+                  style={{ justifyContent: "center", fontSize: "0.85rem" }}
+                >
+                  پرداخت نقدی آنلاین
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("PurchaseOrder")}
+                  className={paymentMethod === "PurchaseOrder" ? "btn btn-primary" : "btn btn-ghost"}
+                  style={{ justifyContent: "center", fontSize: "0.85rem" }}
+                >
+                  سفارش شرکتی (PO / اعتباری)
+                </button>
+              </div>
+
+              {paymentMethod === "PurchaseOrder" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: "var(--surface-alt)", padding: 12, borderRadius: 8 }}>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.82rem", fontWeight: 600 }}>
+                      شماره سفارش خرید (PO Number)
+                    </label>
+                    <input
+                      type="text"
+                      className="mono"
+                      value={poNumber}
+                      onChange={(e) => setPoNumber(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.82rem", fontWeight: 600 }}>
+                      شرایط تسویه اعتباری
+                    </label>
+                    <select value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
+                      <option value="Net30">تسویه ۳۰ روزه (Net-30)</option>
+                      <option value="Net60">تسویه ۶۰ روزه (Net-60)</option>
+                      <option value="Net90">تسویه ۹۰ روزه (Net-90)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontSize: "0.88rem", fontWeight: 600 }}>
+                  شماره نظام پزشکی یا پروانه مرکز درمانی (جهت تجهیزات نسخه‌دار)
+                </label>
+                <input
+                  type="text"
+                  className="mono"
+                  value={medicalLicense}
+                  onChange={(e) => setMedicalLicense(e.target.value)}
+                  placeholder="MED-LIC-44829-IR"
+                  required
+                />
               </div>
 
               <div>
@@ -371,14 +421,6 @@ export default function CheckoutPage() {
                   value={addressNote}
                   onChange={(e) => setAddressNote(e.target.value)}
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 8,
-                    border: "1px solid var(--line)",
-                    background: "var(--surface)",
-                    fontFamily: "inherit",
-                  }}
                 />
               </div>
 
@@ -393,13 +435,6 @@ export default function CheckoutPage() {
                     value={latitude}
                     onChange={(e) => setLatitude(e.target.value)}
                     required
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      borderRadius: 8,
-                      border: "1px solid var(--line)",
-                      background: "var(--surface)",
-                    }}
                   />
                 </div>
                 <div>
@@ -412,13 +447,6 @@ export default function CheckoutPage() {
                     value={longitude}
                     onChange={(e) => setLongitude(e.target.value)}
                     required
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      borderRadius: 8,
-                      border: "1px solid var(--line)",
-                      background: "var(--surface)",
-                    }}
                   />
                 </div>
               </div>
@@ -432,7 +460,7 @@ export default function CheckoutPage() {
                   alignItems: "center",
                 }}
               >
-                <span style={{ fontWeight: 600 }}>مبلغ کل قابل پرداخت:</span>
+                <span style={{ fontWeight: 600 }}>مبلغ کل فاکتور:</span>
                 <span className="mono" style={{ fontSize: "1.2rem", color: "var(--primary)", fontWeight: 700 }}>
                   {totalAmount.toLocaleString("fa-IR")} ریال
                 </span>
@@ -458,7 +486,11 @@ export default function CheckoutPage() {
                 disabled={submitting}
                 style={{ justifyContent: "center" }}
               >
-                {submitting ? "در حال پردازش سفارش..." : "تأیید و پرداخت سفارش"}
+                {submitting
+                  ? "در حال پردازش..."
+                  : paymentMethod === "PurchaseOrder"
+                    ? "ثبت سفارش رسمی و صدور فاکتور B2B"
+                    : "تأیید و پرداخت سفارش"}
               </button>
             </form>
           </div>

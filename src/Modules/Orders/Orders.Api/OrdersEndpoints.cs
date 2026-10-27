@@ -23,7 +23,17 @@ public static class OrdersEndpoints
         group.MapPost("/{orderId:guid}/lines", AddLineAsync)
              .RequireAuthorization(new AuthorizeAttribute { Roles = OrderRole })
              .WithName("AddOrderLine")
-             .WithSummary("افزودن آیتم به سفارش");
+             .WithSummary("افزودن آیتم با ردیابی شماره بچ و سریال به سفارش");
+
+        group.MapPost("/{orderId:guid}/b2b-terms", SetB2BTermsAsync)
+             .RequireAuthorization(new AuthorizeAttribute { Roles = OrderRole })
+             .WithName("SetB2BTerms")
+             .WithSummary("ثبت شماره سفارش خرید شرکتی (PO) و شرایط تسویه اعتباری (Net-30/60)");
+
+        group.MapPost("/{orderId:guid}/verify-compliance", VerifyComplianceAsync)
+             .RequireAuthorization(new AuthorizeAttribute { Roles = OrderRole })
+             .WithName("VerifyCompliance")
+             .WithSummary("ثبت و احراز شماره نظام پزشکی یا مجوز مرکز درمانی");
 
         group.MapPost("/{orderId:guid}/payment-pending", MarkPaymentPendingAsync)
              .RequireAuthorization(new AuthorizeAttribute { Roles = OrderRole })
@@ -56,7 +66,7 @@ public static class OrdersEndpoints
         IOrderService orders,
         CancellationToken ct)
     {
-        var result = await orders.CreateOrder(request.CustomerId, request.SupplierId, DateTimeOffset.UtcNow);
+        var result = await orders.CreateOrder(request.CustomerId, request.SupplierId, DateTimeOffset.UtcNow, ct);
 
         return result.IsSuccess
             ? Results.Created($"/api/orders/{result.Value.Id}", result.Value)
@@ -70,11 +80,46 @@ public static class OrdersEndpoints
         CancellationToken ct)
     {
         var result = await orders.AddLine(
-            orderId, request.SkuId, request.Quantity, request.UnitPrice, request.Currency, DateTimeOffset.UtcNow);
+            orderId,
+            request.SkuId,
+            request.Quantity,
+            request.UnitPrice,
+            request.Currency,
+            DateTimeOffset.UtcNow,
+            request.LotNumber,
+            request.SerialNumber,
+            request.ExpiryDate,
+            ct);
 
         return result.IsSuccess
             ? Results.NoContent()
             : Results.Problem(title: "افزودن آیتم ناموفق بود", detail: result.ErrorMessage, statusCode: 400);
+    }
+
+    private static async Task<IResult> SetB2BTermsAsync(
+        Guid orderId,
+        SetB2BTermsRequest request,
+        IOrderService orders,
+        CancellationToken ct)
+    {
+        var result = await orders.SetB2BTerms(orderId, request.PurchaseOrderNumber, request.PaymentTerms, DateTimeOffset.UtcNow, ct);
+
+        return result.IsSuccess
+            ? Results.NoContent()
+            : Results.Problem(title: "ثبت شرایط خرید ناموفق بود", detail: result.ErrorMessage, statusCode: 400);
+    }
+
+    private static async Task<IResult> VerifyComplianceAsync(
+        Guid orderId,
+        VerifyComplianceRequest request,
+        IOrderService orders,
+        CancellationToken ct)
+    {
+        var result = await orders.VerifyCompliance(orderId, request.MedicalLicenseNumber, DateTimeOffset.UtcNow, ct);
+
+        return result.IsSuccess
+            ? Results.NoContent()
+            : Results.Problem(title: "احراز مجوز ناموفق بود", detail: result.ErrorMessage, statusCode: 400);
     }
 
     private static async Task<IResult> MarkPaymentPendingAsync(
@@ -82,7 +127,7 @@ public static class OrdersEndpoints
         IOrderService orders,
         CancellationToken ct)
     {
-        var result = await orders.MarkPaymentPending(orderId, DateTimeOffset.UtcNow);
+        var result = await orders.MarkPaymentPending(orderId, DateTimeOffset.UtcNow, ct);
 
         return result.IsSuccess
             ? Results.NoContent()
@@ -94,7 +139,7 @@ public static class OrdersEndpoints
         IOrderService orders,
         CancellationToken ct)
     {
-        var result = await orders.MarkPaid(orderId, DateTimeOffset.UtcNow);
+        var result = await orders.MarkPaid(orderId, DateTimeOffset.UtcNow, ct);
 
         return result.IsSuccess
             ? Results.NoContent()
@@ -106,7 +151,7 @@ public static class OrdersEndpoints
         IOrderService orders,
         CancellationToken ct)
     {
-        var result = await orders.MarkFulfillmentPending(orderId, DateTimeOffset.UtcNow);
+        var result = await orders.MarkFulfillmentPending(orderId, DateTimeOffset.UtcNow, ct);
 
         return result.IsSuccess
             ? Results.NoContent()
@@ -118,7 +163,7 @@ public static class OrdersEndpoints
         IOrderService orders,
         CancellationToken ct)
     {
-        var result = await orders.Confirm(orderId, DateTimeOffset.UtcNow);
+        var result = await orders.Confirm(orderId, DateTimeOffset.UtcNow, ct);
 
         return result.IsSuccess
             ? Results.NoContent()
@@ -130,7 +175,7 @@ public static class OrdersEndpoints
         IOrderService orders,
         CancellationToken ct)
     {
-        var result = await orders.Cancel(orderId, DateTimeOffset.UtcNow);
+        var result = await orders.Cancel(orderId, DateTimeOffset.UtcNow, ct);
 
         return result.IsSuccess
             ? Results.NoContent()
@@ -138,8 +183,17 @@ public static class OrdersEndpoints
     }
 }
 
-// --- Requests ----------------------------------------------------------------
-
 public sealed record CreateOrderRequest(Guid CustomerId, Guid SupplierId);
 
-public sealed record AddLineRequest(Guid SkuId, int Quantity, decimal UnitPrice, string Currency);
+public sealed record AddLineRequest(
+    Guid SkuId,
+    int Quantity,
+    decimal UnitPrice,
+    string Currency,
+    string? LotNumber = null,
+    string? SerialNumber = null,
+    DateTimeOffset? ExpiryDate = null);
+
+public sealed record SetB2BTermsRequest(string PurchaseOrderNumber, string PaymentTerms);
+
+public sealed record VerifyComplianceRequest(string MedicalLicenseNumber);

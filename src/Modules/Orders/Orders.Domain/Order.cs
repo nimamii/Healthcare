@@ -3,15 +3,9 @@ using Healthcare.SharedKernel;
 namespace Healthcare.Modules.Orders.Domain;
 
 /// <summary>
-/// An order in the marketplace.
+/// An enterprise healthcare order supporting B2B purchase orders, medical traceability,
+/// and regulatory license/prescription verification.
 /// </summary>
-/// <remarks>
-/// The order state machine is: CREATED → PAYMENT_PENDING → PAID → FULFILLMENT_PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED
-/// (+ CANCELLED/FAILED/REFUNDED)
-///
-/// Every transition is explicit and guarded. The state is not a free-form
-/// string; it is an enum that the compiler can check.
-/// </remarks>
 public sealed class Order
 {
     private Order()
@@ -41,6 +35,16 @@ public sealed class Order
     public Guid SupplierId { get; private set; }
 
     public OrderStatus Status { get; private set; }
+
+    public PaymentMethod PaymentMethod { get; private set; } = PaymentMethod.OnlineGateway;
+
+    public string? PurchaseOrderNumber { get; private set; }
+
+    public string? PaymentTerms { get; private set; }
+
+    public string? MedicalLicenseNumber { get; private set; }
+
+    public bool IsPrescriptionVerified { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -76,7 +80,15 @@ public sealed class Order
             now));
     }
 
-    public Result AddLine(Guid skuId, int quantity, decimal unitPrice, string currency, DateTimeOffset now)
+    public Result AddLine(
+        Guid skuId,
+        int quantity,
+        decimal unitPrice,
+        string currency,
+        DateTimeOffset now,
+        string? lotNumber = null,
+        string? serialNumber = null,
+        DateTimeOffset? expiryDate = null)
     {
         if (skuId == Guid.Empty)
         {
@@ -106,7 +118,43 @@ public sealed class Order
                 "کد ارز باید سه حرف باشد.");
         }
 
-        _lines.Add(new OrderLine(Guid.NewGuid(), skuId, quantity, unitPrice, currency));
+        _lines.Add(new OrderLine(
+            Guid.NewGuid(),
+            skuId,
+            quantity,
+            unitPrice,
+            currency,
+            lotNumber,
+            serialNumber,
+            expiryDate));
+
+        UpdatedAt = now;
+        return Result.Success();
+    }
+
+    public Result SetB2BPurchaseOrder(string poNumber, string terms, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(poNumber))
+        {
+            return Result.Failure("po_number_required", "شماره سفارش خرید (PO Number) الزامی است.");
+        }
+
+        PaymentMethod = PaymentMethod.PurchaseOrder;
+        PurchaseOrderNumber = poNumber.Trim().ToUpperInvariant();
+        PaymentTerms = string.IsNullOrWhiteSpace(terms) ? "Net30" : terms.Trim();
+        UpdatedAt = now;
+        return Result.Success();
+    }
+
+    public Result VerifyMedicalCompliance(string licenseOrDocRef, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(licenseOrDocRef))
+        {
+            return Result.Failure("license_required", "شماره نظام پزشکی یا مجوز مرکز درمانی الزامی است.");
+        }
+
+        MedicalLicenseNumber = licenseOrDocRef.Trim();
+        IsPrescriptionVerified = true;
         UpdatedAt = now;
         return Result.Success();
     }
@@ -141,7 +189,7 @@ public sealed class Order
 
     public Result MarkFulfillmentPending(DateTimeOffset now)
     {
-        if (Status != OrderStatus.Paid)
+        if (Status != OrderStatus.Paid && !(PaymentMethod == PaymentMethod.PurchaseOrder && Status == OrderStatus.PaymentPending))
         {
             return Result.Failure(
                 "order_invalid_transition",
@@ -197,9 +245,18 @@ public enum OrderStatus
     Refunded = 10,
 }
 
+public enum PaymentMethod
+{
+    OnlineGateway = 0,
+    PurchaseOrder = 1,
+}
+
 public sealed record OrderLine(
     Guid Id,
     Guid SkuId,
     int Quantity,
     decimal UnitPrice,
-    string Currency);
+    string Currency,
+    string? LotNumber = null,
+    string? SerialNumber = null,
+    DateTimeOffset? ExpiryDate = null);

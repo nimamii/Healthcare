@@ -21,6 +21,11 @@ public static class InventoryEndpoints
              .RequireAuthorization()
              .WithName("AdjustStock")
              .WithSummary("تنظیم موجودی قابل فروش یک SKU توسط تأمین‌کننده یا ادمین");
+
+        group.MapPost("/batch-adjust", BatchAdjustStockAsync)
+             .RequireAuthorization()
+             .WithName("BatchAdjustStock")
+             .WithSummary("همگام‌سازی دسته‌ای موجودی چند کالا از طریق فایل اکسل/CSV یا وب‌هوک ERP");
     }
 
     private static async Task<IResult> GetStockForSkuAsync(
@@ -48,6 +53,45 @@ public static class InventoryEndpoints
                 detail: result.ErrorMessage,
                 statusCode: 400);
     }
+
+    private static async Task<IResult> BatchAdjustStockAsync(
+        BatchAdjustStockRequest request,
+        IInventoryService inventory,
+        CancellationToken ct)
+    {
+        if (request.Items == null || request.Items.Count == 0)
+        {
+            return Results.BadRequest(new { error = "فهرست اقلام موجودی نمی‌تواند خالی باشد." });
+        }
+
+        var results = new List<object>();
+        foreach (var item in request.Items)
+        {
+            var res = await inventory.AdjustAsync(
+                new AdjustStockCommand(item.SkuId, item.SupplierId, item.NewAvailableQuantity),
+                ct);
+
+            results.Add(new
+            {
+                skuId = item.SkuId,
+                supplierId = item.SupplierId,
+                quantity = item.NewAvailableQuantity,
+                isSuccess = res.IsSuccess,
+                errorMessage = res.ErrorMessage
+            });
+        }
+
+        return Results.Ok(new
+        {
+            totalProcessed = request.Items.Count,
+            sourceSystem = request.SourceSystem ?? "ERP_BATCH_CSV",
+            items = results
+        });
+    }
 }
 
 public sealed record AdjustStockRequest(Guid SkuId, Guid SupplierId, int NewAvailableQuantity);
+
+public sealed record BatchAdjustStockRequest(
+    string? SourceSystem,
+    IReadOnlyCollection<AdjustStockRequest> Items);
